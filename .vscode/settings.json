@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "arduino.h": "c",
+        "stm8s.h": "c",
+        "wiring_private.h": "c",
+        "hardwareserial.h": "c",
+        "math.h": "c",
+        "corecrt_math.h": "c"
+    }
+}
