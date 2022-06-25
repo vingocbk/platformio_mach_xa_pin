@@ -13,7 +13,26 @@
 #define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
 #define MAX_VOLTAGE_5S				MAX_VOLTAGE_1S*5		//V
 #define MAX_VOLTAGE_6S				MAX_VOLTAGE_1S*6		//V
-#define VOLTAGE_DISCHARGER_1S		3.85	//V
+#define VOLTAGE_DISCHARGER_1S		3.8		//V
+#define VOLTAGE_DISCHARGER_2S		VOLTAGE_DISCHARGER_1S*2		//V
+#define VOLTAGE_DISCHARGER_3S		VOLTAGE_DISCHARGER_1S*3		//V
+#define VOLTAGE_DISCHARGER_4S		VOLTAGE_DISCHARGER_1S*4		//V
+#define VOLTAGE_DISCHARGER_5S		VOLTAGE_DISCHARGER_1S*5		//V
+#define VOLTAGE_DISCHARGER_6S		VOLTAGE_DISCHARGER_1S*6		//V
+
+#define MIN_VOLTAGE_1S            	2.7     //V
+#define MIN_VOLTAGE_2S				MIN_VOLTAGE_1S*2		//V
+#define MIN_VOLTAGE_3S				MIN_VOLTAGE_1S*3		//V
+#define MIN_VOLTAGE_4S				MIN_VOLTAGE_1S*4		//V
+#define MIN_VOLTAGE_5S				MIN_VOLTAGE_1S*5		//V
+#define MIN_VOLTAGE_6S				MIN_VOLTAGE_1S*6		//V
+#define MAX_VOLTAGE_1S            	4.4     //V
+#define MAX_VOLTAGE_2S				MAX_VOLTAGE_1S*2		//V
+#define MAX_VOLTAGE_3S				MAX_VOLTAGE_1S*3		//V
+#define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
+#define MAX_VOLTAGE_5S				MAX_VOLTAGE_1S*5		//V
+#define MAX_VOLTAGE_6S				MAX_VOLTAGE_1S*6		//V
+#define VOLTAGE_DISCHARGER_1S		3.8		//V
 #define VOLTAGE_DISCHARGER_2S		VOLTAGE_DISCHARGER_1S*2		//V
 #define VOLTAGE_DISCHARGER_3S		VOLTAGE_DISCHARGER_1S*3		//V
 #define VOLTAGE_DISCHARGER_4S		VOLTAGE_DISCHARGER_1S*4		//V
@@ -22,19 +41,21 @@
 
 #define PIN_LED_BLUE		PC4
 #define PIN_LED_RED			PC5
-#define PIN_LED_YELLOW		PC6
+#define PIN_LED_GREEN		PC6
 #define PIN_MOSFET			PC7
 
 #define PIN_READ_VOLTAGE		PD2
 #define PIN_READ_TEMPERATURE	PD3
 
-#define MAX_TEMPERATURE_TO_RESET 	80
+#define MAX_TEMPERATURE_TO_RESET 	100
 #define MIN_TEMPERATURE_TO_START 	30
 #define CALIB_TEMPERATURE 			50
 
+// #define MODE_POWER_5V
+
 // #define MODE_DEBUG
 /*    
-Yellow    	Red     	Blue      	type
+Green    	Red     	Blue      	type
   x        	x       	o        	3.7V	(1S)
   x        	o       	x        	7.4V	(2S)
   x        	o       	o       	11.1V	(3S)
@@ -74,42 +95,42 @@ void showLedBattery(int number){
 	switch (number)
 	{
 	case S1_ON:
-		digitalWrite(PIN_LED_YELLOW, LOW);
+		digitalWrite(PIN_LED_GREEN, LOW);
 		digitalWrite(PIN_LED_RED, LOW);
 		digitalWrite(PIN_LED_BLUE, HIGH);
 		break;
 	case S2_ON:
-		digitalWrite(PIN_LED_YELLOW, LOW);
+		digitalWrite(PIN_LED_GREEN, LOW);
 		digitalWrite(PIN_LED_RED, HIGH);
 		digitalWrite(PIN_LED_BLUE, LOW);
 		break;
 	case S3_ON:
-		digitalWrite(PIN_LED_YELLOW, LOW);
+		digitalWrite(PIN_LED_GREEN, LOW);
 		digitalWrite(PIN_LED_RED, HIGH);
 		digitalWrite(PIN_LED_BLUE, HIGH);
 		break;
 	case S4_ON:
-		digitalWrite(PIN_LED_YELLOW, HIGH);
+		digitalWrite(PIN_LED_GREEN, HIGH);
 		digitalWrite(PIN_LED_RED, LOW);
 		digitalWrite(PIN_LED_BLUE, LOW);
 		break;
 	case S5_ON:
-		digitalWrite(PIN_LED_YELLOW, HIGH);
+		digitalWrite(PIN_LED_GREEN, HIGH);
 		digitalWrite(PIN_LED_RED, LOW);
 		digitalWrite(PIN_LED_BLUE, HIGH);
 		break;
 	case S6_ON:
-		digitalWrite(PIN_LED_YELLOW, HIGH);
+		digitalWrite(PIN_LED_GREEN, HIGH);
 		digitalWrite(PIN_LED_RED, HIGH);
 		digitalWrite(PIN_LED_BLUE, LOW);
 		break;
 	case ALL_OFF:
-		digitalWrite(PIN_LED_YELLOW, LOW);
+		digitalWrite(PIN_LED_GREEN, LOW);
 		digitalWrite(PIN_LED_RED, LOW);
 		digitalWrite(PIN_LED_BLUE, LOW);
 		break;
 	case ALL_ON:
-		digitalWrite(PIN_LED_YELLOW, HIGH);
+		digitalWrite(PIN_LED_GREEN, HIGH);
 		digitalWrite(PIN_LED_RED, HIGH);
 		digitalWrite(PIN_LED_BLUE, HIGH);
 		break;
@@ -126,8 +147,12 @@ float readVoltage(){
 		delay(50);
 	}
 	float Voltage = 0;
-	Voltage = (float)analogVoltageValue/5;
+	Voltage = (float)analogVoltageValue/5.0;
+#ifdef MODE_POWER_5V
+	Voltage = Voltage*5.2/1024;
+#else
 	Voltage = Voltage*3.3/1024;
+#endif
 	Voltage = 11*Voltage;
 	return Voltage;
 }
@@ -144,17 +169,22 @@ float readTemperature(){
 
 void setup() {
 	// put your setup code here, to run once:
-#ifdef MODE_DEBUG
-	Serial_begin(115200);
-#endif
 	pinMode(PIN_LED_BLUE, OUTPUT);
 	pinMode(PIN_LED_RED, OUTPUT);
-	pinMode(PIN_LED_YELLOW, OUTPUT);
+	pinMode(PIN_LED_GREEN, OUTPUT);
 	pinMode(PIN_MOSFET, OUTPUT);
 	digitalWrite(PIN_MOSFET, LOW);
 	pinMode(PIN_READ_VOLTAGE, INPUT);
 	pinMode(PIN_READ_TEMPERATURE, INPUT);
 	delay(100);
+#ifdef MODE_DEBUG
+	Serial_begin(115200);
+	digitalWrite(PIN_LED_BLUE, HIGH);
+	digitalWrite(PIN_LED_RED, HIGH);
+	digitalWrite(PIN_LED_GREEN, HIGH);
+	digitalWrite(PIN_MOSFET, HIGH);
+#endif
+	
 
 #ifndef MODE_DEBUG
 	float Voltage = readVoltage();
@@ -259,6 +289,16 @@ void setup() {
 		}
 	}
 #endif
+
+	// while(1){
+	// 	for(int i = 0; i < 255; i++){
+	// 		analogWrite(PIN_LED_GREEN,i);
+	// 		analogWrite(PIN_LED_RED,i);
+	// 		analogWrite(PIN_LED_BLUE,i);
+	// 		delay(10);
+	// 	}
+	// }
+	
 }
 
 void loop() {
@@ -267,6 +307,7 @@ void loop() {
 	float Voltage = readVoltage();
 #ifdef MODE_DEBUG
 	Serial_println_f(Voltage);
+	Serial_println_f(temperature);
 	// _sleep();
 #endif
 
