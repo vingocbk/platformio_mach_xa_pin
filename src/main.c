@@ -1,13 +1,13 @@
 #include <Arduino.h>
 // #include <math.h>
 
-#define MIN_VOLTAGE_1S            	2.7     //V
+#define MIN_VOLTAGE_1S            	3.0     //V
 #define MIN_VOLTAGE_2S				MIN_VOLTAGE_1S*2		//V
 #define MIN_VOLTAGE_3S				MIN_VOLTAGE_1S*3		//V
 #define MIN_VOLTAGE_4S				MIN_VOLTAGE_1S*4		//V
 #define MIN_VOLTAGE_5S				MIN_VOLTAGE_1S*5		//V
 #define MIN_VOLTAGE_6S				MIN_VOLTAGE_1S*6		//V
-#define MAX_VOLTAGE_1S            	4.4     //V
+#define MAX_VOLTAGE_1S            	4.3     //V
 #define MAX_VOLTAGE_2S				MAX_VOLTAGE_1S*2		//V
 #define MAX_VOLTAGE_3S				MAX_VOLTAGE_1S*3		//V
 #define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
@@ -20,24 +20,6 @@
 #define VOLTAGE_DISCHARGER_5S		VOLTAGE_DISCHARGER_1S*5		//V
 #define VOLTAGE_DISCHARGER_6S		VOLTAGE_DISCHARGER_1S*6		//V
 
-#define MIN_VOLTAGE_1S            	2.7     //V
-#define MIN_VOLTAGE_2S				MIN_VOLTAGE_1S*2		//V
-#define MIN_VOLTAGE_3S				MIN_VOLTAGE_1S*3		//V
-#define MIN_VOLTAGE_4S				MIN_VOLTAGE_1S*4		//V
-#define MIN_VOLTAGE_5S				MIN_VOLTAGE_1S*5		//V
-#define MIN_VOLTAGE_6S				MIN_VOLTAGE_1S*6		//V
-#define MAX_VOLTAGE_1S            	4.4     //V
-#define MAX_VOLTAGE_2S				MAX_VOLTAGE_1S*2		//V
-#define MAX_VOLTAGE_3S				MAX_VOLTAGE_1S*3		//V
-#define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
-#define MAX_VOLTAGE_5S				MAX_VOLTAGE_1S*5		//V
-#define MAX_VOLTAGE_6S				MAX_VOLTAGE_1S*6		//V
-#define VOLTAGE_DISCHARGER_1S		3.8		//V
-#define VOLTAGE_DISCHARGER_2S		VOLTAGE_DISCHARGER_1S*2		//V
-#define VOLTAGE_DISCHARGER_3S		VOLTAGE_DISCHARGER_1S*3		//V
-#define VOLTAGE_DISCHARGER_4S		VOLTAGE_DISCHARGER_1S*4		//V
-#define VOLTAGE_DISCHARGER_5S		VOLTAGE_DISCHARGER_1S*5		//V
-#define VOLTAGE_DISCHARGER_6S		VOLTAGE_DISCHARGER_1S*6		//V
 
 #define PIN_LED_BLUE		PC4
 #define PIN_LED_RED			PC5
@@ -76,6 +58,9 @@ enum MODE_BATTERY{
 	ERROR_BAT
 };
 enum MODE_BATTERY mode_battery;
+
+unsigned long count_time = 0;
+bool state_is_running = FALSE;
 
 
 float Thermistor(int Vo) {
@@ -138,22 +123,44 @@ void showLedBattery(int number){
 		break;
 	}
 }
+
+void turnOffLedAndMofet(){
+	showLedBattery(ALL_OFF);	
+	digitalWrite(PIN_MOSFET, LOW);
+	state_is_running = FALSE;
+}
+
+void turnOnLedAndMofet(int number){
+	showLedBattery(number);
+	digitalWrite(PIN_MOSFET, HIGH);
+	state_is_running = TRUE;
+}
+
+void ledLowVoltage(int number){
+	for(int i = 0; i < 5; i++){
+		showLedBattery(number);
+		delay(200);
+		showLedBattery(ALL_OFF);
+		delay(200);
+	}
+}
+
 #endif
 
 float readVoltage(){
 	int analogVoltageValue = 0;
 	for(int i = 0; i < 5; i++){
 		analogVoltageValue += analogRead(PIN_READ_VOLTAGE);
-		delay(50);
+		delay(5);
 	}
 	float Voltage = 0;
 	Voltage = (float)analogVoltageValue/5.0;
 #ifdef MODE_POWER_5V
-	Voltage = Voltage*5.2/1024;
+	Voltage = Voltage*5.2/1024.0;
 #else
-	Voltage = Voltage*3.3/1024;
+	Voltage = Voltage*3.33/1024.0;
 #endif
-	Voltage = 11*Voltage;
+	Voltage = 11.0*Voltage;
 	return Voltage;
 }
 
@@ -161,7 +168,7 @@ float readTemperature(){
 	float temperature = 0;
 	for(int i = 0; i < 5; i++){
 		temperature += Thermistor(analogRead(PIN_READ_TEMPERATURE));
-		delay(50);
+		delay(5);
 	}
 	temperature = temperature/5.0;
 	return temperature;
@@ -176,7 +183,7 @@ void setup() {
 	digitalWrite(PIN_MOSFET, LOW);
 	pinMode(PIN_READ_VOLTAGE, INPUT);
 	pinMode(PIN_READ_TEMPERATURE, INPUT);
-	delay(100);
+	delay(500);
 #ifdef MODE_DEBUG
 	Serial_begin(115200);
 	digitalWrite(PIN_LED_BLUE, HIGH);
@@ -191,102 +198,60 @@ void setup() {
 	if(Voltage >= MIN_VOLTAGE_1S && Voltage <= MAX_VOLTAGE_1S){
 		mode_battery = S1_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_1S){
-			showLedBattery(S1_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S1_ON);
 		}
 		else{
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S1_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S1_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_2S && Voltage <= MAX_VOLTAGE_2S){
 		mode_battery = S2_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_2S){
-			showLedBattery(S2_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S2_ON);
 		}
 		else{
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S2_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S2_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_3S && Voltage <= MAX_VOLTAGE_3S){
 		mode_battery = S3_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_3S){
-			showLedBattery(S3_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S3_ON);
 		}
 		else{ 
-			
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S3_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S3_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_4S && Voltage <= MAX_VOLTAGE_4S){
 		mode_battery = S4_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_4S){
-			showLedBattery(S4_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S4_ON);
 		}
 		else{
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S4_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S4_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_5S && Voltage <= MAX_VOLTAGE_5S){
 		mode_battery = S5_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_5S){
-			showLedBattery(S5_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S5_ON);
 		}
 		else{
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S5_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S5_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_6S && Voltage <= MAX_VOLTAGE_6S){
 		mode_battery = S6_ON;
 		if(Voltage >= VOLTAGE_DISCHARGER_6S){
-			showLedBattery(S6_ON);
-			digitalWrite(PIN_MOSFET, HIGH);
+			turnOnLedAndMofet(S6_ON);
 		}
 		else{
-			for(int i = 0; i < 5; i++){
-				showLedBattery(S6_ON);
-				delay(200);
-				showLedBattery(ALL_OFF);
-				delay(200);
-			}
+			ledLowVoltage(S6_ON);
 		}
 	}
 	else{
 		mode_battery = ERROR_BAT;
-		for(int i = 0; i < 5; i++){
-			showLedBattery(ALL_ON);
-			delay(200);
-			showLedBattery(ALL_OFF);
-			delay(200);
-		}
+		ledLowVoltage(ALL_ON);
 	}
 #endif
 
@@ -303,72 +268,105 @@ void setup() {
 
 void loop() {
 	// put your main code here, to run repeatedly:
+#ifdef MODE_DEBUG
 	float temperature = readTemperature();
 	float Voltage = readVoltage();
-#ifdef MODE_DEBUG
 	Serial_println_f(Voltage);
 	Serial_println_f(temperature);
 	// _sleep();
+	delay(1000);
 #endif
 
 #ifndef MODE_DEBUG
-	switch (mode_battery)
-	{
-	case S1_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_1S){
-			showLedBattery(ALL_OFF);	
-			digitalWrite(PIN_MOSFET, LOW);
-			// _sleep();
-			// sleep
+	if(state_is_running && millis() - count_time >= 1000){
+		count_time = millis();
+		float temperature = readTemperature();
+		float Voltage = readVoltage();
+		switch (mode_battery)
+		{
+		case S1_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_1S){
+				turnOffLedAndMofet();
+			}
+			break;
+		case S2_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_2S){
+				turnOffLedAndMofet();
+			}
+			break;
+		case S3_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_3S){
+				turnOffLedAndMofet();
+			}
+			break;
+		case S4_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_4S){
+				turnOffLedAndMofet();
+			}
+			break;
+		case S5_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_5S){
+				turnOffLedAndMofet();
+			}
+			break;
+		case S6_ON:
+			/* code */
+			if(Voltage < VOLTAGE_DISCHARGER_6S){
+				turnOffLedAndMofet();
+			}
+			break;
+		default:
+			break;
 		}
-		break;
-	case S2_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_2S){
-			showLedBattery(ALL_OFF);	
-			digitalWrite(PIN_MOSFET, LOW);
+		if(temperature > MAX_TEMPERATURE_TO_RESET){
+			turnOffLedAndMofet();
 		}
-		break;
-	case S3_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_3S){
-			showLedBattery(ALL_OFF);	
+	}
+	if(state_is_running){
+		switch (mode_battery)
+		{
+		case S1_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			break;
+		case S2_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			break;
+		case S3_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			delayMicroseconds(90);
 			digitalWrite(PIN_MOSFET, LOW);
-		}
-		break;
-	case S4_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_4S){
-			showLedBattery(ALL_OFF);	
+			delayMicroseconds(10);
+			break;
+		case S4_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			delayMicroseconds(70);
 			digitalWrite(PIN_MOSFET, LOW);
-		}
-		break;
-	case S5_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_5S){
-			showLedBattery(ALL_OFF);	
+			delayMicroseconds(30);
+			break;
+		case S5_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			delayMicroseconds(40);
 			digitalWrite(PIN_MOSFET, LOW);
-		}
-		break;
-	case S6_ON:
-		/* code */
-		if(Voltage < VOLTAGE_DISCHARGER_6S){
-			showLedBattery(ALL_OFF);	
+			delayMicroseconds(60);
+			break;
+		case S6_ON:
+			digitalWrite(PIN_MOSFET, HIGH);
+			delayMicroseconds(20);
 			digitalWrite(PIN_MOSFET, LOW);
+			delayMicroseconds(80);
+			break;
+		default:
+			break;
 		}
-		break;
-	default:
-		break;
 	}
 
-	if(temperature > MAX_TEMPERATURE_TO_RESET){
-		showLedBattery(ALL_OFF);	
-		digitalWrite(PIN_MOSFET, LOW);
-	}
 #endif
 
-	delay(1000);
 }
 
 
