@@ -156,7 +156,7 @@ float readVoltage(){
 	float Voltage = 0;
 	Voltage = (float)analogVoltageValue/5.0;
 #ifdef MODE_POWER_5V
-	Voltage = Voltage*5.2/1024.0;
+	Voltage = Voltage*5.1/1024.0;
 #else
 	Voltage = Voltage*3.33/1024.0;
 #endif
@@ -338,27 +338,24 @@ void loop() {
 			break;
 		case S3_ON:
 			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(90);
-			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(10);
 			break;
 		case S4_ON:
 			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(70);
+			delayMicroseconds(80);
 			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(30);
+			delayMicroseconds(20);
 			break;
 		case S5_ON:
 			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(40);
+			delayMicroseconds(50);
 			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(60);
+			delayMicroseconds(50);
 			break;
 		case S6_ON:
 			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(20);
+			delayMicroseconds(30);
 			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(80);
+			delayMicroseconds(70);
 			break;
 		default:
 			break;
