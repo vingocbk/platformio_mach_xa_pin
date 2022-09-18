@@ -7,13 +7,13 @@
 #define MIN_VOLTAGE_4S				MIN_VOLTAGE_1S*4		//V
 #define MIN_VOLTAGE_5S				MIN_VOLTAGE_1S*5		//V
 #define MIN_VOLTAGE_6S				MIN_VOLTAGE_1S*6		//V
-#define MAX_VOLTAGE_1S            	4.3     //V
+#define MAX_VOLTAGE_1S            	4.2     //V
 #define MAX_VOLTAGE_2S				MAX_VOLTAGE_1S*2		//V
 #define MAX_VOLTAGE_3S				MAX_VOLTAGE_1S*3		//V
 #define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
 #define MAX_VOLTAGE_5S				MAX_VOLTAGE_1S*5		//V
 #define MAX_VOLTAGE_6S				MAX_VOLTAGE_1S*6		//V
-#define VOLTAGE_DISCHARGER_1S		3.8		//V
+#define VOLTAGE_DISCHARGER_1S		3.85		//V
 #define VOLTAGE_DISCHARGER_2S		VOLTAGE_DISCHARGER_1S*2		//V
 #define VOLTAGE_DISCHARGER_3S		VOLTAGE_DISCHARGER_1S*3		//V
 #define VOLTAGE_DISCHARGER_4S		VOLTAGE_DISCHARGER_1S*4		//V
@@ -21,19 +21,27 @@
 #define VOLTAGE_DISCHARGER_6S		VOLTAGE_DISCHARGER_1S*6		//V
 
 
-#define PIN_LED_BLUE		PC4
-#define PIN_LED_RED			PC5
-#define PIN_LED_GREEN		PC6
-#define PIN_MOSFET			PC7
+#define PIN_LED_BLUE		PC5
+#define PIN_LED_RED			PC6
+#define PIN_LED_GREEN		PC7
+#define PIN_MOSFET			PC4
+
+#define VALUE_PWM_1S		255
+#define VALUE_PWM_2S		255
+#define VALUE_PWM_3S		220
+#define VALUE_PWM_4S		180
+#define VALUE_PWM_5S		120
+#define VALUE_PWM_6S		60
+#define VALUE_PWM_OFF		0
 
 #define PIN_READ_VOLTAGE		PD2
 #define PIN_READ_TEMPERATURE	PD3
 
-#define MAX_TEMPERATURE_TO_RESET 	100
+#define MAX_TEMPERATURE_TO_RESET 	80
 #define MIN_TEMPERATURE_TO_START 	30
 #define CALIB_TEMPERATURE 			50
 
-// #define MODE_POWER_5V
+#define MODE_POWER_5V
 
 // #define MODE_DEBUG
 /*    
@@ -60,14 +68,13 @@ enum MODE_BATTERY{
 enum MODE_BATTERY mode_battery;
 
 unsigned long count_time = 0;
-bool state_is_running = FALSE;
 
 
 float Thermistor(int Vo) {
 	float T,logRt,Tf,Tc;
 	float A = 1.009249522e-03, B = 2.378405444e-04, C = 2.019202697e-07;
 	float Rt;
-	Rt = 10000.0*((1024.0/Vo-1));
+	Rt = 100000.0*((1024.0/Vo-1));
 	logRt = logf(Rt);
 	T = (1.0 / (A + B*logRt + C*logRt*logRt*logRt));  // We get the temperature value in Kelvin from this Stein-Hart equation
 	Tc = T - 273.15 + CALIB_TEMPERATURE;                     // Convert Kelvin to Celcius
@@ -126,14 +133,35 @@ void showLedBattery(int number){
 
 void turnOffLedAndMofet(){
 	showLedBattery(ALL_OFF);	
-	digitalWrite(PIN_MOSFET, LOW);
-	state_is_running = FALSE;
+	analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
+	halt();
 }
 
 void turnOnLedAndMofet(int number){
 	showLedBattery(number);
-	digitalWrite(PIN_MOSFET, HIGH);
-	state_is_running = TRUE;
+	switch (number)
+	{
+	case S1_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_1S);
+		break;
+	case S2_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_2S);
+		break;
+	case S3_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_3S);
+		break;
+	case S4_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_4S);
+		break;
+	case S5_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_5S);
+		break;
+	case S6_ON:
+		analogWrite(PIN_MOSFET, VALUE_PWM_6S);
+		break;	
+	default:
+		break;
+	}
 }
 
 void ledLowVoltage(int number){
@@ -156,9 +184,9 @@ float readVoltage(){
 	float Voltage = 0;
 	Voltage = (float)analogVoltageValue/5.0;
 #ifdef MODE_POWER_5V
-	Voltage = Voltage*5.1/1024.0;
+	Voltage = Voltage*5.0/1024.0;
 #else
-	Voltage = Voltage*3.33/1024.0;
+	Voltage = Voltage*3.2/1024.0;
 #endif
 	Voltage = 11.0*Voltage;
 	return Voltage;
@@ -179,17 +207,18 @@ void setup() {
 	pinMode(PIN_LED_BLUE, OUTPUT);
 	pinMode(PIN_LED_RED, OUTPUT);
 	pinMode(PIN_LED_GREEN, OUTPUT);
-	pinMode(PIN_MOSFET, OUTPUT);
-	digitalWrite(PIN_MOSFET, LOW);
+	// pinMode(PIN_MOSFET, OUTPUT);
+	// digitalWrite(PIN_MOSFET, LOW);
 	pinMode(PIN_READ_VOLTAGE, INPUT);
 	pinMode(PIN_READ_TEMPERATURE, INPUT);
 	delay(500);
+	analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
 #ifdef MODE_DEBUG
 	Serial_begin(115200);
 	digitalWrite(PIN_LED_BLUE, HIGH);
 	digitalWrite(PIN_LED_RED, HIGH);
 	digitalWrite(PIN_LED_GREEN, HIGH);
-	digitalWrite(PIN_MOSFET, HIGH);
+	// digitalWrite(PIN_MOSFET, HIGH);
 #endif
 	
 
@@ -275,10 +304,14 @@ void loop() {
 	Serial_println_f(temperature);
 	// _sleep();
 	delay(1000);
+	digitalWrite(PIN_LED_BLUE, LOW);
+	digitalWrite(PIN_LED_RED, LOW);
+	digitalWrite(PIN_LED_GREEN, LOW);
+	halt();
 #endif
 
 #ifndef MODE_DEBUG
-	if(state_is_running && millis() - count_time >= 1000){
+	if(millis() - count_time >= 1000){
 		count_time = millis();
 		float temperature = readTemperature();
 		float Voltage = readVoltage();
@@ -324,41 +357,32 @@ void loop() {
 			break;
 		}
 		if(temperature > MAX_TEMPERATURE_TO_RESET){
-			turnOffLedAndMofet();
+			analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
 		}
-	}
-	if(state_is_running){
-		switch (mode_battery)
-		{
-		case S1_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			break;
-		case S2_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			break;
-		case S3_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			break;
-		case S4_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(80);
-			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(20);
-			break;
-		case S5_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(50);
-			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(50);
-			break;
-		case S6_ON:
-			digitalWrite(PIN_MOSFET, HIGH);
-			delayMicroseconds(30);
-			digitalWrite(PIN_MOSFET, LOW);
-			delayMicroseconds(70);
-			break;
-		default:
-			break;
+		else{
+			switch (mode_battery)
+			{
+			case S1_ON:
+				turnOnLedAndMofet(S1_ON);
+				break;
+			case S2_ON:
+				turnOnLedAndMofet(S2_ON);
+				break;
+			case S3_ON:
+				turnOnLedAndMofet(S3_ON);
+				break;
+			case S4_ON:
+				turnOnLedAndMofet(S4_ON);
+				break;
+			case S5_ON:
+				turnOnLedAndMofet(S5_ON);
+				break;
+			case S6_ON:
+				turnOnLedAndMofet(S6_ON);
+				break;
+			default:
+				break;
+			}
 		}
 	}
 
