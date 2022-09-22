@@ -28,10 +28,10 @@
 
 #define VALUE_PWM_1S		255
 #define VALUE_PWM_2S		255
-#define VALUE_PWM_3S		220
-#define VALUE_PWM_4S		180
-#define VALUE_PWM_5S		120
-#define VALUE_PWM_6S		60
+#define VALUE_PWM_3S		245
+#define VALUE_PWM_4S		185
+#define VALUE_PWM_5S		150
+#define VALUE_PWM_6S		120
 #define VALUE_PWM_OFF		0
 
 #define PIN_READ_VOLTAGE		PD2
@@ -171,6 +171,7 @@ void ledLowVoltage(int number){
 		showLedBattery(ALL_OFF);
 		delay(200);
 	}
+	halt();
 }
 
 #endif
@@ -211,8 +212,13 @@ void setup() {
 	// digitalWrite(PIN_MOSFET, LOW);
 	pinMode(PIN_READ_VOLTAGE, INPUT);
 	pinMode(PIN_READ_TEMPERATURE, INPUT);
-	delay(500);
+	delay(100);
+	// digitalWrite(PIN_LED_BLUE, HIGH);
+	// digitalWrite(PIN_LED_RED, HIGH);
+	// digitalWrite(PIN_LED_GREEN, HIGH);
+	// delay(400);
 	analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
+	
 #ifdef MODE_DEBUG
 	Serial_begin(115200);
 	digitalWrite(PIN_LED_BLUE, HIGH);
@@ -304,10 +310,10 @@ void loop() {
 	Serial_println_f(temperature);
 	// _sleep();
 	delay(1000);
-	digitalWrite(PIN_LED_BLUE, LOW);
-	digitalWrite(PIN_LED_RED, LOW);
-	digitalWrite(PIN_LED_GREEN, LOW);
-	halt();
+	// digitalWrite(PIN_LED_BLUE, LOW);
+	// digitalWrite(PIN_LED_RED, LOW);
+	// digitalWrite(PIN_LED_GREEN, LOW);
+	// halt();
 #endif
 
 #ifndef MODE_DEBUG
