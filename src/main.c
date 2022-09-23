@@ -1,19 +1,30 @@
 #include <Arduino.h>
 // #include <math.h>
 
-#define MIN_VOLTAGE_1S            	3.0     //V
+#define MODE_DISCHARGER_3V8
+
+#ifdef MODE_DISCHARGER_3V8
+#define MIN_VOLTAGE_1S            	3.4     //V
+#define VOLTAGE_DISCHARGER_1S		3.85	//V
+#define MAX_VOLTAGE_1S            	4.2     //V
+#else 
+#define MIN_VOLTAGE_1S            	3.25    //V
+#define VOLTAGE_DISCHARGER_1S		3.3		//V
+#define MAX_VOLTAGE_1S            	4.0     //V
+#endif
+
 #define MIN_VOLTAGE_2S				MIN_VOLTAGE_1S*2		//V
 #define MIN_VOLTAGE_3S				MIN_VOLTAGE_1S*3		//V
 #define MIN_VOLTAGE_4S				MIN_VOLTAGE_1S*4		//V
 #define MIN_VOLTAGE_5S				MIN_VOLTAGE_1S*5		//V
 #define MIN_VOLTAGE_6S				MIN_VOLTAGE_1S*6		//V
-#define MAX_VOLTAGE_1S            	4.2     //V
+
 #define MAX_VOLTAGE_2S				MAX_VOLTAGE_1S*2		//V
 #define MAX_VOLTAGE_3S				MAX_VOLTAGE_1S*3		//V
 #define MAX_VOLTAGE_4S				MAX_VOLTAGE_1S*4		//V
 #define MAX_VOLTAGE_5S				MAX_VOLTAGE_1S*5		//V
 #define MAX_VOLTAGE_6S				MAX_VOLTAGE_1S*6		//V
-#define VOLTAGE_DISCHARGER_1S		3.85		//V
+
 #define VOLTAGE_DISCHARGER_2S		VOLTAGE_DISCHARGER_1S*2		//V
 #define VOLTAGE_DISCHARGER_3S		VOLTAGE_DISCHARGER_1S*3		//V
 #define VOLTAGE_DISCHARGER_4S		VOLTAGE_DISCHARGER_1S*4		//V
@@ -28,10 +39,10 @@
 
 #define VALUE_PWM_1S		255
 #define VALUE_PWM_2S		255
-#define VALUE_PWM_3S		245
-#define VALUE_PWM_4S		185
-#define VALUE_PWM_5S		150
-#define VALUE_PWM_6S		120
+#define VALUE_PWM_3S		240
+#define VALUE_PWM_4S		180
+#define VALUE_PWM_5S		148
+#define VALUE_PWM_6S		122
 #define VALUE_PWM_OFF		0
 
 #define PIN_READ_VOLTAGE		PD2
@@ -230,40 +241,13 @@ void setup() {
 
 #ifndef MODE_DEBUG
 	float Voltage = readVoltage();
-	if(Voltage >= MIN_VOLTAGE_1S && Voltage <= MAX_VOLTAGE_1S){
-		mode_battery = S1_ON;
-		if(Voltage >= VOLTAGE_DISCHARGER_1S){
-			turnOnLedAndMofet(S1_ON);
+	if(Voltage >= MIN_VOLTAGE_6S && Voltage <= MAX_VOLTAGE_6S){
+		mode_battery = S6_ON;
+		if(Voltage >= VOLTAGE_DISCHARGER_6S){
+			turnOnLedAndMofet(S6_ON);
 		}
 		else{
-			ledLowVoltage(S1_ON);
-		}
-	}
-	else if(Voltage >= MIN_VOLTAGE_2S && Voltage <= MAX_VOLTAGE_2S){
-		mode_battery = S2_ON;
-		if(Voltage >= VOLTAGE_DISCHARGER_2S){
-			turnOnLedAndMofet(S2_ON);
-		}
-		else{
-			ledLowVoltage(S2_ON);
-		}
-	}
-	else if(Voltage >= MIN_VOLTAGE_3S && Voltage <= MAX_VOLTAGE_3S){
-		mode_battery = S3_ON;
-		if(Voltage >= VOLTAGE_DISCHARGER_3S){
-			turnOnLedAndMofet(S3_ON);
-		}
-		else{ 
-			ledLowVoltage(S3_ON);
-		}
-	}
-	else if(Voltage >= MIN_VOLTAGE_4S && Voltage <= MAX_VOLTAGE_4S){
-		mode_battery = S4_ON;
-		if(Voltage >= VOLTAGE_DISCHARGER_4S){
-			turnOnLedAndMofet(S4_ON);
-		}
-		else{
-			ledLowVoltage(S4_ON);
+			ledLowVoltage(S6_ON);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_5S && Voltage <= MAX_VOLTAGE_5S){
@@ -275,15 +259,43 @@ void setup() {
 			ledLowVoltage(S5_ON);
 		}
 	}
-	else if(Voltage >= MIN_VOLTAGE_6S && Voltage <= MAX_VOLTAGE_6S){
-		mode_battery = S6_ON;
-		if(Voltage >= VOLTAGE_DISCHARGER_6S){
-			turnOnLedAndMofet(S6_ON);
+	else if(Voltage >= MIN_VOLTAGE_4S && Voltage <= MAX_VOLTAGE_4S){
+		mode_battery = S4_ON;
+		if(Voltage >= VOLTAGE_DISCHARGER_4S){
+			turnOnLedAndMofet(S4_ON);
 		}
 		else{
-			ledLowVoltage(S6_ON);
+			ledLowVoltage(S4_ON);
 		}
 	}
+	else if(Voltage >= MIN_VOLTAGE_3S && Voltage <= MAX_VOLTAGE_3S){
+		mode_battery = S3_ON;
+		if(Voltage >= VOLTAGE_DISCHARGER_3S){
+			turnOnLedAndMofet(S3_ON);
+		}
+		else{ 
+			ledLowVoltage(S3_ON);
+		}
+	}
+	else if(Voltage >= MIN_VOLTAGE_2S && Voltage <= MAX_VOLTAGE_2S){
+		mode_battery = S2_ON;
+		if(Voltage >= VOLTAGE_DISCHARGER_2S){
+			turnOnLedAndMofet(S2_ON);
+		}
+		else{
+			ledLowVoltage(S2_ON);
+		}
+	}
+	else if(Voltage >= MIN_VOLTAGE_1S && Voltage <= MAX_VOLTAGE_1S){
+		mode_battery = S1_ON;
+		if(Voltage >= VOLTAGE_DISCHARGER_1S){
+			turnOnLedAndMofet(S1_ON);
+		}
+		else{
+			ledLowVoltage(S1_ON);
+		}
+	}
+	
 	else{
 		mode_battery = ERROR_BAT;
 		ledLowVoltage(ALL_ON);
