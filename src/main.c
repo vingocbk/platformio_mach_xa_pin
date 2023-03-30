@@ -21,18 +21,28 @@
 #define VOLTAGE_DISCHARGER_6S		VOLTAGE_DISCHARGER_1S*6		//V
 
 
-#define PIN_LED_BLUE		PC5
-#define PIN_LED_RED			PC6
-#define PIN_LED_GREEN		PC7
+// #define PIN_LED_BLUE		PC5
+// #define PIN_LED_RED			PC6
+// #define PIN_LED_GREEN		PC7
+#define PIN_LED				PC5
 #define PIN_MOSFET			PC4
+// #define PIN_MOSFET			PC3
+#define PIN_RELAY			PC7
 
 #define VALUE_PWM_1S		255
 #define VALUE_PWM_2S		255
-#define VALUE_PWM_3S		220
-#define VALUE_PWM_4S		180
+#define VALUE_PWM_3S		230
+#define VALUE_PWM_4S		170
 #define VALUE_PWM_5S		120
-#define VALUE_PWM_6S		60
+#define VALUE_PWM_6S		110
 #define VALUE_PWM_OFF		0
+// #define VALUE_PWM_1S		0
+// #define VALUE_PWM_2S		0
+// #define VALUE_PWM_3S		0
+// #define VALUE_PWM_4S		0
+// #define VALUE_PWM_5S		0
+// #define VALUE_PWM_6S		0
+// #define VALUE_PWM_OFF		0
 
 #define PIN_READ_VOLTAGE		PD2
 #define PIN_READ_TEMPERATURE	PD3
@@ -40,6 +50,9 @@
 #define MAX_TEMPERATURE_TO_RESET 	80
 #define MIN_TEMPERATURE_TO_START 	30
 #define CALIB_TEMPERATURE 			50
+
+#define MODE_DELAY_LOW_VOLTAGE		200
+#define MOD_DELAY_WRONG_VOLTAGE		500
 
 #define MODE_POWER_5V
 
@@ -87,44 +100,28 @@ void showLedBattery(int number){
 	switch (number)
 	{
 	case S1_ON:
-		digitalWrite(PIN_LED_GREEN, LOW);
-		digitalWrite(PIN_LED_RED, LOW);
-		digitalWrite(PIN_LED_BLUE, HIGH);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case S2_ON:
-		digitalWrite(PIN_LED_GREEN, LOW);
-		digitalWrite(PIN_LED_RED, HIGH);
-		digitalWrite(PIN_LED_BLUE, LOW);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case S3_ON:
-		digitalWrite(PIN_LED_GREEN, LOW);
-		digitalWrite(PIN_LED_RED, HIGH);
-		digitalWrite(PIN_LED_BLUE, HIGH);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case S4_ON:
-		digitalWrite(PIN_LED_GREEN, HIGH);
-		digitalWrite(PIN_LED_RED, LOW);
-		digitalWrite(PIN_LED_BLUE, LOW);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case S5_ON:
-		digitalWrite(PIN_LED_GREEN, HIGH);
-		digitalWrite(PIN_LED_RED, LOW);
-		digitalWrite(PIN_LED_BLUE, HIGH);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case S6_ON:
-		digitalWrite(PIN_LED_GREEN, HIGH);
-		digitalWrite(PIN_LED_RED, HIGH);
-		digitalWrite(PIN_LED_BLUE, LOW);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	case ALL_OFF:
-		digitalWrite(PIN_LED_GREEN, LOW);
-		digitalWrite(PIN_LED_RED, LOW);
-		digitalWrite(PIN_LED_BLUE, LOW);
+		digitalWrite(PIN_LED, LOW);
 		break;
 	case ALL_ON:
-		digitalWrite(PIN_LED_GREEN, HIGH);
-		digitalWrite(PIN_LED_RED, HIGH);
-		digitalWrite(PIN_LED_BLUE, HIGH);
+		digitalWrite(PIN_LED, HIGH);
 		break;
 	default:
 		break;
@@ -134,11 +131,13 @@ void showLedBattery(int number){
 void turnOffLedAndMofet(){
 	showLedBattery(ALL_OFF);	
 	analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
-	halt();
+	digitalWrite(PIN_RELAY, LOW);
 }
 
 void turnOnLedAndMofet(int number){
+	// analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
 	showLedBattery(number);
+	// return;
 	switch (number)
 	{
 	case S1_ON:
@@ -164,13 +163,14 @@ void turnOnLedAndMofet(int number){
 	}
 }
 
-void ledLowVoltage(int number){
+void ledLowVoltage(int number, int time_delay){
 	for(int i = 0; i < 5; i++){
 		showLedBattery(number);
-		delay(200);
+		delay(time_delay);
 		showLedBattery(ALL_OFF);
-		delay(200);
+		delay(time_delay);
 	}
+	digitalWrite(PIN_RELAY, LOW);
 }
 
 #endif
@@ -204,14 +204,12 @@ float readTemperature(){
 
 void setup() {
 	// put your setup code here, to run once:
-	pinMode(PIN_LED_BLUE, OUTPUT);
-	pinMode(PIN_LED_RED, OUTPUT);
-	pinMode(PIN_LED_GREEN, OUTPUT);
-	// pinMode(PIN_MOSFET, OUTPUT);
-	// digitalWrite(PIN_MOSFET, LOW);
+	pinMode(PIN_LED, OUTPUT);
+	pinMode(PIN_RELAY, OUTPUT);
 	pinMode(PIN_READ_VOLTAGE, INPUT);
 	pinMode(PIN_READ_TEMPERATURE, INPUT);
-	delay(500);
+	delay(10);
+	digitalWrite(PIN_RELAY, HIGH);
 	analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
 #ifdef MODE_DEBUG
 	Serial_begin(115200);
@@ -230,7 +228,7 @@ void setup() {
 			turnOnLedAndMofet(S1_ON);
 		}
 		else{
-			ledLowVoltage(S1_ON);
+			ledLowVoltage(S1_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_2S && Voltage <= MAX_VOLTAGE_2S){
@@ -239,7 +237,7 @@ void setup() {
 			turnOnLedAndMofet(S2_ON);
 		}
 		else{
-			ledLowVoltage(S2_ON);
+			ledLowVoltage(S2_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_3S && Voltage <= MAX_VOLTAGE_3S){
@@ -248,7 +246,7 @@ void setup() {
 			turnOnLedAndMofet(S3_ON);
 		}
 		else{ 
-			ledLowVoltage(S3_ON);
+			ledLowVoltage(S3_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_4S && Voltage <= MAX_VOLTAGE_4S){
@@ -257,7 +255,7 @@ void setup() {
 			turnOnLedAndMofet(S4_ON);
 		}
 		else{
-			ledLowVoltage(S4_ON);
+			ledLowVoltage(S4_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_5S && Voltage <= MAX_VOLTAGE_5S){
@@ -266,7 +264,7 @@ void setup() {
 			turnOnLedAndMofet(S5_ON);
 		}
 		else{
-			ledLowVoltage(S5_ON);
+			ledLowVoltage(S5_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else if(Voltage >= MIN_VOLTAGE_6S && Voltage <= MAX_VOLTAGE_6S){
@@ -275,12 +273,12 @@ void setup() {
 			turnOnLedAndMofet(S6_ON);
 		}
 		else{
-			ledLowVoltage(S6_ON);
+			ledLowVoltage(S6_ON, MODE_DELAY_LOW_VOLTAGE);
 		}
 	}
 	else{
 		mode_battery = ERROR_BAT;
-		ledLowVoltage(ALL_ON);
+		ledLowVoltage(ALL_ON, MOD_DELAY_WRONG_VOLTAGE);
 	}
 #endif
 
@@ -360,29 +358,7 @@ void loop() {
 			analogWrite(PIN_MOSFET, VALUE_PWM_OFF);
 		}
 		else{
-			switch (mode_battery)
-			{
-			case S1_ON:
-				turnOnLedAndMofet(S1_ON);
-				break;
-			case S2_ON:
-				turnOnLedAndMofet(S2_ON);
-				break;
-			case S3_ON:
-				turnOnLedAndMofet(S3_ON);
-				break;
-			case S4_ON:
-				turnOnLedAndMofet(S4_ON);
-				break;
-			case S5_ON:
-				turnOnLedAndMofet(S5_ON);
-				break;
-			case S6_ON:
-				turnOnLedAndMofet(S6_ON);
-				break;
-			default:
-				break;
-			}
+			turnOnLedAndMofet(mode_battery);
 		}
 	}
 
